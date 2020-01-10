@@ -18,27 +18,25 @@ def main():
     print("Number of companies: "+str(len(symbols)))
     print('input the year you would like to start from:')
     start_year = input()
+    print('input the number of threads you would like to use:')
+    num_threads = input()
     try:
         start_year = int(start_year)
+        num_threads = int(num_threads)
     except:
         print('Invalid input exiting program')
         exit(1)
     sy = start_year
     data = {'stocks': []}
-    pool = ThreadPool(30)
-    #results = []
-    #for _ in tqdm.tqdm(pool.map(get_data, symbols['NASDAQ Symbol']), total=len(symbols['NASDAQ Symbol'])):
-        #pass
+    pool = ThreadPool(num_threads)
     results = list(tqdm.tqdm(pool.imap(get_data, symbols['NASDAQ Symbol']), total=len(symbols['NASDAQ Symbol'])))
-
-    result_data = []
-    for r in results:
-        result_data.append(r)
+    test_results = {'Method Results': []}
+    for tr in results:
+        test_results['Method Results'].append(tr)
+    with open('test_data.json', 'w') as f:
+        json.dump(test_results, f, indent=4, sort_keys=True, default=str)
     # NASDAQ Symbol
     for symbol in symbols['NASDAQ Symbol']:
-        if result_data.index(0) is None:
-            result_data.pop(0)
-            continue
         try:
             # Security Name
             name = symbols.loc[symbol]['Security Name']
@@ -46,7 +44,7 @@ def main():
             data['stocks'].append({
                 'name': name,
                 'symbol': symbol,
-                'info': result_data.pop(0)
+                'info': results.pop(0)
             })
 
         except:
@@ -156,29 +154,19 @@ def get_data(symbol):
     end = date.datetime.now()
     try:
         f = web.DataReader(symbol, 'yahoo', start, end)
+
     except:
         return None
     incro = date.timedelta(days=1)
     cur_day = start
     data = {'data': []}
-    while cur_day <= end:
+    for t in f.itertuples():
+        data['data'].append({
+            'date': t[0].strftime("%Y-%m-%d"),
+            'value': t[-1]
+        })
 
-        try:
-            value = f.loc[cur_day.strftime("%Y-%m-%d")]['Close']
-            cdate = cur_day
-            data['data'].append({
-                'date': cdate,
-                'value': value
-            })
-            #print(symbol + ' - ' +str(cur_day.strftime("%Y-%m-%d"))+": "+str(f.loc[str(cur_day)]['Close']))
-            cur_day = cur_day + incro
-        except Exception:
-            cur_day = cur_day + incro
     return data
-    # print("date length "+str(len(date_array)))
-    # print("data length "+str(len(data_array)))
-    # plt.plot(date_array,data_array)
-    # plt.show()
 
 
 main()
